@@ -30,4 +30,4 @@ flutter:
     - family: HgiStrokeRounded
       fonts:
         - asset: lib/fonts/hgi-stroke-rounded.ttf
-  # uses-material-design: true
+  uses-material-design: true

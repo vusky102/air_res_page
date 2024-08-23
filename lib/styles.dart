@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const themeColor =  Color.fromARGB(255, 8, 85, 252);
+const themeColor =  Color.fromARGB(255, 255, 197, 7);
 
 TextStyle style(BuildContext context) {
   final theme = Theme.of(context);
