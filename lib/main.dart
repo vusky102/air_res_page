@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Ticket Reservation',
+        title: 'E9PAY AIR TICKET',
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(seedColor: themeColor),
@@ -63,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         // label: Text(' ', style: TextStyle(color: Colors.transparent)),
         label: Text(
-          'Ticket Reservation',
+          'Air Ticket',
           style: TextStyle(
             fontSize: 15.0,
             fontWeight: FontWeight.bold

@@ -15,3 +15,8 @@ const Map<String, String> cityMap = {
   'Ho Chi Minh': 'SGN',
 
 };
+
+String getCityNameFromCode(String code) {
+  return cityMap.entries.firstWhere((entry) => entry.value == code,
+    orElse: () => const MapEntry('Unknown', 'Unknown')).key;
+}
