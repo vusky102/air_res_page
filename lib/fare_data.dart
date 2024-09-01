@@ -71,11 +71,15 @@ class Segment {
   final int indexSegment;
   final String startPoint;
   final String endPoint;
+  final String startTime;
+  final String endTime;
 
   Segment({
     required this.indexSegment,
     required this.startPoint,
     required this.endPoint,
+    required this.startTime,
+    required this.endTime,
   });
 
   factory Segment.fromJson(Map<String, dynamic> json) {
@@ -83,6 +87,8 @@ class Segment {
       indexSegment: json['IndexSegment'],
       startPoint: json['StartPoint'],
       endPoint: json['EndPoint'],
+      startTime: json['StartTime'],
+      endTime: json['EndTime'],
     );
   }
 }

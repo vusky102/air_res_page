@@ -396,6 +396,9 @@ class HomePageState extends State<HomePage> {
                   final segment = _segment[index];
                   final startPointCity = getCityNameFromCode(segment.startPoint);
                   final endPointCity = getCityNameFromCode(segment.endPoint);
+                  final deptTime = DateFormat.Hm().format(DateTime.parse(segment.startTime));
+                  final arrvTime= DateFormat.Hm().format(DateTime.parse(segment.endTime));
+                  final dayDiff= int.parse(DateFormat('dd').format(DateTime.parse(segment.endTime)))- int.parse(DateFormat('dd').format(DateTime.parse(segment.startTime)));
 
                   String? airlineLogoPath = airlineLogos[flight.airline];
 
@@ -432,13 +435,14 @@ class HomePageState extends State<HomePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            Text('$startPointCity'),
+                            Text('$startPointCity $deptTime'),
                             Image.asset(
                               'assets/segment_line.png',
                               width: 120,  // Adjust the width and height as needed
                               height: 120,
                               ),
-                            Text('$endPointCity')
+                            Text('$endPointCity $arrvTime ${dayDiff==0?'':'+${dayDiff}D'}')
+                            //${dayDiff==0?'':'+${dayDiff}D'}')
                           ]
                         ),
                         Text('Total Price: $formattedPrice $currency'),
