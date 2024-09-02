@@ -48,11 +48,13 @@ class Option {
 class Flight {
   final int flightId;
   final String airline;
+  final String flightNumber;
   final List<Segment> listSegment;
 
   Flight({
     required this.flightId,
     required this.airline,
+    required this.flightNumber,
     required this.listSegment,
   });
 
@@ -60,6 +62,7 @@ class Flight {
     return Flight(
       flightId: json['FlightId'],
       airline: json['Airline'],
+      flightNumber: json['FlightNumber'],
       listSegment: (json['ListSegment'] as List)
           .map((segmentJson) => Segment.fromJson(segmentJson))
           .toList(),

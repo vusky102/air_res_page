@@ -397,8 +397,10 @@ class HomePageState extends State<HomePage> {
                   final startPointCity = getCityNameFromCode(segment.startPoint);
                   final endPointCity = getCityNameFromCode(segment.endPoint);
                   final deptTime = DateFormat.Hm().format(DateTime.parse(segment.startTime));
+                  final deptDate = DateFormat.yMd().format(DateTime.parse(segment.startTime));
+                  final arrvDate = DateFormat.yMd().format(DateTime.parse(segment.endTime));
                   final arrvTime= DateFormat.Hm().format(DateTime.parse(segment.endTime));
-                  final dayDiff= int.parse(DateFormat('dd').format(DateTime.parse(segment.endTime)))- int.parse(DateFormat('dd').format(DateTime.parse(segment.startTime)));
+                  // final dayDiff= int.parse(DateFormat('dd').format(DateTime.parse(segment.endTime)))- int.parse(DateFormat('dd').format(DateTime.parse(segment.startTime)));
 
                   String? airlineLogoPath = airlineLogos[flight.airline];
 
@@ -419,33 +421,67 @@ class HomePageState extends State<HomePage> {
                   child:
                   ListTile(
                     title: airlineLogoPath != null
-                          ? Image.asset(
+                          ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
                               airlineLogoPath,
-                              width: 80,  // Adjust the width and height as needed
-                              height: 80,
+                              width: 65,  // Adjust the width and height as needed
+                              height: 65,
                               errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
                                 // Fallback in case the image is not found
                                 return Text('Airline: ${flight.airline}');
-                              },
-                            )
+                                },
+                              ),
+                              Text(flight.flightNumber),
+                            ]
+                          )
                           : Text('Airline: ${flight.airline}'),
+   
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            Text('$startPointCity $deptTime'),
+                            Column(
+                              children: [
+                                Text(deptDate),
+                                Text(
+                                  deptTime,
+                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(startPointCity),
+                              ]
+                            ),
                             Image.asset(
                               'assets/segment_line.png',
                               width: 120,  // Adjust the width and height as needed
-                              height: 120,
+                              height: 50,
                               ),
-                            Text('$endPointCity $arrvTime ${dayDiff==0?'':'+${dayDiff}D'}')
-                            //${dayDiff==0?'':'+${dayDiff}D'}')
+                            Column(
+                              children: [
+                                Text(arrvDate),
+                                Text(
+                                  arrvTime,
+                                  // '${dayDiff==0?'':'+${dayDiff}D'}',
+                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                                Text(endPointCity),
+                              ]
+                            ),
                           ]
                         ),
-                        Text('Total Price: $formattedPrice $currency'),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              '$formattedPrice $currency',
+                              style: TextStyle(color: themeColor, fontSize: 18, fontWeight: FontWeight.bold)
+                            ),
+                          ]
+                        ),
                       ],
                     ),
                     leading: Radio<int>(

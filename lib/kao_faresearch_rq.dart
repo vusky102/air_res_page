@@ -11,15 +11,9 @@ Future<String> sendRequest({
     required int? chdNo,
     required int? infNo,
   }) async {
-    
 
-    
+    final url = 'http://environment.techlive.vn/Flight/Search';
 
-
-    // Define the URL for the API endpoint
-    final url = 'http://environment.techlive.vn/Flight/Search'; // Replace with your API URL
-
-    // Prepare the list of flight legs
     final List<Map<String, dynamic>> listFlight = [
       {
         "Leg": 0,
@@ -36,12 +30,12 @@ Future<String> sendRequest({
           "Leg": 1,
           "StartPoint": toLoc,
           "EndPoint": fromLoc,
-          "DepartDate": arrivalDate ?? departureDate // Use arrivalDate for return
+          "DepartDate": arrivalDate ?? departureDate 
         }
       );
     }
 
-    // Define the JSON data
+
     final jsonData = {
       "Adt": adultNo,
       "Chd": chdNo ?? 0,
@@ -90,10 +84,10 @@ Future<String> sendRequest({
         return response.body;
       } else {
         print('Request failed with status: ${response.statusCode}');
-        return ''; // Return an empty string or handle the error appropriately
+        return ''; 
       }
     } catch (e) {
       print('An error occurred: $e');
-      return ''; // Return an empty string or handle the error appropriately
+      return ''; 
     }
 }
