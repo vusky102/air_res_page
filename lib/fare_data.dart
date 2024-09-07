@@ -13,18 +13,25 @@ class FlightResponse {
     List<FareData> fareDataLeg0 = [];
     List<FareData> fareDataLeg1 = [];
 
-    if (json['ListFareData'] != null) {
-      json['ListFareData'].forEach((v) {
-        FareData fareData = FareData.fromJson(v);
-        if (fareData.listOption.isNotEmpty && fareData.listOption[0].listFlight.isNotEmpty) {
-          if (fareData.listOption[0].listFlight[0].leg == 0) {
-            fareDataLeg0.add(fareData);
-          } else if (fareData.listOption[0].listFlight[0].leg == 1) {
-            fareDataLeg1.add(fareData);
-          }
+if (json['ListFareData'] != null) {
+  json['ListFareData'].forEach((v) {
+    FareData fareData = FareData.fromJson(v);
+
+    if (fareData.listOption.isNotEmpty && fareData.listOption[0].listFlight.isNotEmpty) {
+      // Iterate over all flights in the listOption
+      fareData.listOption[0].listFlight.forEach((flight) {
+        if (flight.leg == 0) {
+          // Add to fareDataLeg0 if the leg is 0
+          fareDataLeg0.add(fareData);
+        } else if (flight.leg == 1) {
+          // Add to fareDataLeg1 if the leg is 1
+          fareDataLeg1.add(fareData);
         }
       });
     }
+  });
+}
+
 
     return FlightResponse(
       session: json['Session'] ?? '', // Default empty string if null

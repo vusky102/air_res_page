@@ -26,6 +26,8 @@ class HomePageState extends State<HomePage> {
   String _toLoc = ''; // State to store the selected arrival location
   late bool shouldShowReturnDateField;
   int? _selectedFlightId; // State variable to track selected flight ID
+  String? _selectedFlightValue0;
+  String? _selectedFlightValue1;
   bool _isLoading = false;
   bool _hasSearched = false; // Track whether a search has been performed
   bool _showReturnFlight=false;
@@ -40,6 +42,11 @@ class HomePageState extends State<HomePage> {
   List<Flight> _flight1=[];
   List<Segment> _segment1=[];
   List<int> _fareID1=[];
+
+  List<Flight> _flight2=[];
+  List<Segment> _segment2=[];
+  List<Flight> _flight3=[];
+  List<Segment> _segment3=[];
 
   @override
   void initState() {
@@ -148,6 +155,9 @@ Future<void> _searchFlights() async {
     _flight1.clear();
     _segment1.clear();
     _fareID1.clear();
+    _selectedFlightId=null;
+    _selectedFlightValue0=null;
+    _selectedFlightValue1=null;
   });
 
   if (_fromLoc.isEmpty || _toLoc.isEmpty || _departureDateController.text.isEmpty) {
@@ -179,6 +189,7 @@ Future<void> _searchFlights() async {
       final parsed = jsonDecode(response);
       FlightResponse flightResponse = FlightResponse.fromJson(parsed);
       print("Fare data for leg 0: ${flightResponse.fareDataLeg0.length}");
+      print("Fare data for leg 1: ${flightResponse.fareDataLeg1.length}");
       // Update the state with the new data
       setState(() {
         _hasSearched = true; // Update search status
@@ -208,6 +219,19 @@ Future<void> _searchFlights() async {
           .expand((listFlight) => listFlight.listSegment).toList();
         
         _fareID1= _fareData1.map((fareData1) => fareData1.fareDataId).toList();
+
+        _flight2=flightResponse.fareDataLeg0
+          .expand((fareData) => fareData.listOption)
+          .map((listOption) => listOption.listFlight[0])
+          .toList();
+
+        _segment2= _flight2.expand((flight)=> flight.listSegment).toList();
+
+        _flight3=flightResponse.fareDataLeg0
+          .expand((fareData) => fareData.listOption)
+          .map((listOption) => listOption.listFlight[1])
+          .toList();
+        _segment3= _flight3.expand((flight)=> flight.listSegment).toList();
 
       });
     } else {
@@ -420,10 +444,11 @@ Widget build(BuildContext context) {
                           : !(_showReturnFlight) ? ListView.builder(
                               itemCount: _fareID0.length,
                               itemBuilder: (context, index) {
-                                final flight = _flight0[index];
+                                final flight = _fareData0[index].itinerary==1 ? _flight0[index] : _flight2[index];
                                 final fareData= _fareData0[index];
                                 
-                                final segment0 = _segment0[index];
+                                final segment0 = _fareData0[index].itinerary==1? _segment0[index] : _segment2[index];
+                                
                                 final startPointCity = getCityNameFromCode(segment0.startPoint);
                                 final endPointCity = getCityNameFromCode(segment0.endPoint);
                                 final deptTime = DateFormat.Hm().format(DateTime.parse(segment0.startTime));
@@ -515,25 +540,29 @@ Widget build(BuildContext context) {
                                       onChanged: (int? value) {
                                         setState(() {
                                           _selectedFlightId = value;
+                                          _selectedFlightValue0 = flight.flightValue;
                                         });
                                       },
                                     ),
                                     onTap: () {
                                       setState(() {
                                         _selectedFlightId = fareData.fareDataId;
+                                        _selectedFlightValue0 = flight.flightValue;
                                       });
                                     },
                                   )
                                 );
                               },
-                            ) :
+                            ) : _flightType =='RT'?
                             ListView.builder(
                               itemCount: _fareID1.length,
                               itemBuilder: (context, index) {
-                                final flight = _flight1[index];
+
+                                final flight = _fareData1[index].itinerary==1 ? _flight1[index] : _flight3[index];
                                 final fareData= _fareData1[index];
                                 
-                                final segment0 = _segment1[index];
+                                final segment0 = _fareData0[index].itinerary==1? _segment1[index] : _segment3[index];
+
                                 final startPointCity = getCityNameFromCode(segment0.startPoint);
                                 final endPointCity = getCityNameFromCode(segment0.endPoint);
                                 final deptTime = DateFormat.Hm().format(DateTime.parse(segment0.startTime));
@@ -625,18 +654,21 @@ Widget build(BuildContext context) {
                                       onChanged: (int? value) {
                                         setState(() {
                                           _selectedFlightId = value;
+                                          _selectedFlightValue1=flight.flightValue;
+
                                         });
                                       },
                                     ),
                                     onTap: () {
                                       setState(() {
                                         _selectedFlightId = fareData.fareDataId;
+                                        _selectedFlightValue1=flight.flightValue;
                                       });
                                     },
                                   )
                                 );
                               },
-                            ),
+                            ) : Text('Next form'),
                     if (_isLoading)
                       Positioned.fill(
                         child: Container(
@@ -651,26 +683,45 @@ Widget build(BuildContext context) {
               ),
               const SizedBox(height: 16),
               // Confirm Selection Button
-              ElevatedButton(
-                onPressed: () {
-                  if (_selectedFlightId != null) {
-                    // Handle flight selection
-                    print('Selected Flight ID: $_selectedFlightId');
-                    setState(() {
-                      _showReturnFlight = true;
-                    });
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Please select a flight.')),
-                    );
-                  }
-                },
+              _flightType=='RT'? ElevatedButton(
+                onPressed: _selectedFlightId != null
+                    ? () {
+                        // Handle flight selection
+                        print('Selected Flight ID: $_selectedFlightId $_selectedFlightValue0 $_selectedFlightValue1');
+                        setState(() {
+                          _selectedFlightId = null;
+                          _showReturnFlight = true;
+                        });
+                      }
+                    : null, // Disable the button when no flight is selected
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  backgroundColor: Theme.of(context).colorScheme.primary, // Button color for enabled state
+                  disabledBackgroundColor: Colors.grey, // Color when the button is disabled (default is grey)
+                  disabledForegroundColor: Colors.white, // Color when the button is disabled (default is grey)
                 ),
-                child: Text('Next Selection', style: style2(context)),
+                child: !(_showReturnFlight)? Text('Next Selection', style: style2(context)):Text('Confirm', style: style2(context)),
+              ) :
+              ElevatedButton(
+                onPressed: _selectedFlightId != null
+                    ? () {
+                        // Handle flight selection
+                        print('Selected Flight ID: $_selectedFlightId  $_selectedFlightValue0 $_selectedFlightValue1');
+                        setState(() {
+                          _selectedFlightId = null;
+                          _showReturnFlight = true;
+                        });
+                      }
+                    : null, // Disable the button when no flight is selected
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: Theme.of(context).colorScheme.primary, // Button color for enabled state
+                  disabledBackgroundColor: Colors.grey, // Color when the button is disabled (default is grey)
+                  disabledForegroundColor: Colors.white, // Color when the button is disabled (default is grey)
+                ),
+                child: Text('Confirm', style: style2(context)),
               ),
+
             ],
           ),
         ),
