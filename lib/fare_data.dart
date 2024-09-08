@@ -198,8 +198,8 @@ class Flight {
   final String operating;
   final String startPoint;
   final String endPoint;
-  final DateTime startDate;
-  final DateTime endDate;
+  final String startDate;
+  final String endDate;
   final String flightNumber;
   final int stopNum;
   final bool hasDownStop;
@@ -247,8 +247,8 @@ class Flight {
       operating: json['Operating'] ?? '', // Default empty string if null
       startPoint: json['StartPoint'] ?? '', // Default empty string if null
       endPoint: json['EndPoint'] ?? '', // Default empty string if null
-      startDate: DateTime.parse(json['StartDate'] ?? DateTime.now().toIso8601String()), // Handle null
-      endDate: DateTime.parse(json['EndDate'] ?? DateTime.now().toIso8601String()), // Handle null
+      startDate: json['StartDate'] ?? '', // Handle null
+      endDate: json['EndDate'] ?? '', // Handle null
       flightNumber: json['FlightNumber'] ?? '', // Default empty string if null
       stopNum: json['StopNum'] ?? 0, // Default value if null
       hasDownStop: json['HasDownStop'] ?? false, // Default value if null

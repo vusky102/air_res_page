@@ -1,7 +1,9 @@
+import 'package:air_reservation/passenger_page.dart';
 import 'package:flutter/material.dart';
 import 'styles.dart';
 import 'home_page.dart';
 import 'hugeicons.dart';
+import 'passenger_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -43,8 +45,16 @@ class _MyHomePageState extends State<MyHomePage> {
     Widget page;
     switch (selectedIndex) {
       case 1:
-        page = const HomePage();
+        page = HomePage(onConfirm: () {
+          setState(() {
+            selectedIndex = 2; // Update selectedIndex to 2 when confirmed
+          });
+        });
         break;
+      case 2:
+        page = const PassengerPage();
+        break;
+        
 
       default:
         throw UnimplementedError('no widget for $selectedIndex');

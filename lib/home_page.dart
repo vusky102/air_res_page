@@ -9,7 +9,9 @@ import 'dart:convert';
 import 'air_logo_map.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final VoidCallback onConfirm;
+  const HomePage({super.key, required this.onConfirm});
+
 
   @override
   HomePageState createState() => HomePageState();
@@ -28,9 +30,12 @@ class HomePageState extends State<HomePage> {
   int? _selectedFlightId; // State variable to track selected flight ID
   String? _selectedFlightValue0;
   String? _selectedFlightValue1;
+  int? _itineraryNo;
+  int? _selectedRadio;
   bool _isLoading = false;
   bool _hasSearched = false; // Track whether a search has been performed
   bool _showReturnFlight=false;
+  late bool _isDomestic;
 
   // State variable to hold flight data leg0
   List<FareData> _fareData0= [];
@@ -47,6 +52,11 @@ class HomePageState extends State<HomePage> {
   List<Segment> _segment2=[];
   List<Flight> _flight3=[];
   List<Segment> _segment3=[];
+
+  List<Segment> _stopSegment10=[];
+  List<Segment?> _stopSegment11=[];
+  List<Segment> _stopSegment20=[];
+  List<Segment?> _stopSegment21=[];
 
   @override
   void initState() {
@@ -97,51 +107,62 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget buildAutocompleteField({
-    required BuildContext context,
-    required String labelText,
-    required Function(String) onSelected,
-    required String initialValue,
-  }) {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        if (textEditingValue.text.isEmpty) {
-          return const Iterable<String>.empty();
+  required BuildContext context,
+  required String labelText,
+  required Function(String) onSelected,
+  required String initialValue,
+}) {
+  return Autocomplete<String>(
+    optionsBuilder: (TextEditingValue textEditingValue) {
+      if (textEditingValue.text.isEmpty) {
+        return const Iterable<String>.empty();
+      }
+
+      final input = textEditingValue.text.toLowerCase();
+
+      // Flatten the nested map to filter and format the options
+      final options = <String>{};
+      for (var country in cityCountryMap.keys) {
+        final cityMap = cityCountryMap[country]!;
+        for (var entry in cityMap.entries) {
+          final city = entry.key;
+          final code = entry.value;
+          if (city.toLowerCase().contains(input) || code.toLowerCase().contains(input)) {
+            options.add('$city ($code)');
+          }
         }
+      }
 
-        final input = textEditingValue.text.toLowerCase();
+      return options;
+    },
+    onSelected: (String selected) {
+      final code = extractAirportCode(selected);
+      onSelected(code);
+    },
+    fieldViewBuilder: (BuildContext context,
+        TextEditingController fieldTextEditingController,
+        FocusNode fieldFocusNode,
+        VoidCallback onFieldSubmitted) {
+      fieldTextEditingController.text = initialValue;
 
-        return cityMap.entries
-            .where((entry) =>
-                entry.key.toLowerCase().contains(input) ||
-                entry.value.toLowerCase().contains(input))
-            .map((entry) => '${entry.key} (${entry.value})');
-      },
-      onSelected: (String selected) {
-        final code = extractAirportCode(selected);
-        onSelected(code);
-      },
-      fieldViewBuilder: (BuildContext context,
-          TextEditingController fieldTextEditingController,
-          FocusNode fieldFocusNode,
-          VoidCallback onFieldSubmitted) {
-        fieldTextEditingController.text = initialValue;
+      return TextField(
+        controller: fieldTextEditingController,
+        focusNode: fieldFocusNode,
+        decoration: InputDecoration(
+          labelText: labelText,
+          border: const OutlineInputBorder(),
+          labelStyle: style2(context),
+        ),
+        style: style2(context),
+        onSubmitted: (String value) {
+          onFieldSubmitted();
+        },
+      );
+    },
+  );
+}
 
-        return TextField(
-          controller: fieldTextEditingController,
-          focusNode: fieldFocusNode,
-          decoration: InputDecoration(
-            labelText: labelText,
-            border: const OutlineInputBorder(),
-            labelStyle: style2(context),
-          ),
-          style: style2(context),
-          onSubmitted: (String value) {
-            onFieldSubmitted();
-          },
-        );
-      },
-    );
-  }
+
 
 Future<void> _searchFlights() async {
   setState(() {
@@ -154,10 +175,15 @@ Future<void> _searchFlights() async {
     _fareData1.clear();
     _flight1.clear();
     _segment1.clear();
+    _segment2.clear();
+    _segment3.clear();
     _fareID1.clear();
+    _flight2.clear();
+    _flight3.clear();
     _selectedFlightId=null;
     _selectedFlightValue0=null;
     _selectedFlightValue1=null;
+    _selectedRadio=null;
   });
 
   if (_fromLoc.isEmpty || _toLoc.isEmpty || _departureDateController.text.isEmpty) {
@@ -193,6 +219,7 @@ Future<void> _searchFlights() async {
       // Update the state with the new data
       setState(() {
         _hasSearched = true; // Update search status
+        _isDomestic = findCountry(_toLoc)=='Vietnam' && findCountry(_fromLoc)=='Vietnam'? true: false;
         _fareData0 = flightResponse.fareDataLeg0.toList();
         _flight0= flightResponse.fareDataLeg0
           .expand((fareData) => fareData.listOption)
@@ -226,13 +253,24 @@ Future<void> _searchFlights() async {
           .toList();
 
         _segment2= _flight2.expand((flight)=> flight.listSegment).toList();
+        _stopSegment10 = _flight2.map((flight) =>flight.listSegment[0]).toList();
+        _stopSegment11 = _flight2.map((flight) {
+            // Check if the flight has a second segment, if not return null
+            return flight.listSegment.length > 1 ? flight.listSegment[1] : null;
+          }).toList();
 
         _flight3=flightResponse.fareDataLeg0
           .expand((fareData) => fareData.listOption)
           .map((listOption) => listOption.listFlight[1])
           .toList();
         _segment3= _flight3.expand((flight)=> flight.listSegment).toList();
-
+        _stopSegment20 = _flight3.map((flight) =>flight.listSegment[0]).toList();
+        _stopSegment21 = _flight3.map((flight) {
+            // Check if the flight has a second segment, if not return null
+            return flight.listSegment.length > 1 ? flight.listSegment[1] : null;
+          }).toList();
+        
+        print('$_stopSegment10 , $_stopSegment11, $_stopSegment20, $_stopSegment21');
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -447,14 +485,18 @@ Widget build(BuildContext context) {
                                 final flight = _fareData0[index].itinerary==1 ? _flight0[index] : _flight2[index];
                                 final fareData= _fareData0[index];
                                 
-                                final segment0 = _fareData0[index].itinerary==1? _segment0[index] : _segment2[index];
+                                // final segment0 = _fareData0[index].itinerary==1? _segment0[index] : _segment2[index];
                                 
-                                final startPointCity = getCityNameFromCode(segment0.startPoint);
-                                final endPointCity = getCityNameFromCode(segment0.endPoint);
-                                final deptTime = DateFormat.Hm().format(DateTime.parse(segment0.startTime));
-                                final deptDate = DateFormat.yMd().format(DateTime.parse(segment0.startTime));
-                                final arrvDate = DateFormat.yMd().format(DateTime.parse(segment0.endTime));
-                                final arrvTime = DateFormat.Hm().format(DateTime.parse(segment0.endTime));
+                                final stopSegment = _stopSegment10[index];
+                                final stopCityCode = stopSegment != null ? stopSegment.stopPoint : null;
+                                final stopCity = stopCityCode != null ? getCityNameFromCode(stopCityCode) : stopCityCode;
+                                
+                                final startPointCity = getCityNameFromCode(flight.startPoint);
+                                final endPointCity = getCityNameFromCode(flight.endPoint);
+                                final deptTime = DateFormat.Hm().format(DateTime.parse(flight.startDate));
+                                final deptDate = DateFormat.yMd().format(DateTime.parse(flight.startDate));
+                                final arrvDate = DateFormat.yMd().format(DateTime.parse(flight.endDate));
+                                final arrvTime = DateFormat.Hm().format(DateTime.parse(flight.endDate));
                                 String? airlineLogoPath = airlineLogos[flight.airline];
 
                                 final formattedPrice = NumberFormat('#,##0').format(fareData.totalPrice);
@@ -522,6 +564,10 @@ Widget build(BuildContext context) {
                                             ),
                                           ]
                                         ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [Text(flight.stopNum>0? 'Stop: ${flight.stopNum} - ${stopCity}':'Nonstop'),]
+                                        ),
                                         const SizedBox(height: 16),
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.end,
@@ -540,6 +586,8 @@ Widget build(BuildContext context) {
                                       onChanged: (int? value) {
                                         setState(() {
                                           _selectedFlightId = value;
+                                          _selectedRadio=value;
+                                          _itineraryNo= fareData.itinerary;
                                           _selectedFlightValue0 = flight.flightValue;
                                         });
                                       },
@@ -547,28 +595,31 @@ Widget build(BuildContext context) {
                                     onTap: () {
                                       setState(() {
                                         _selectedFlightId = fareData.fareDataId;
+                                        _selectedRadio=fareData.fareDataId;
+                                        _itineraryNo= fareData.itinerary;
                                         _selectedFlightValue0 = flight.flightValue;
                                       });
                                     },
                                   )
                                 );
                               },
-                            ) : _flightType =='RT'?
+                            ) : _flightType =='RT' && _isDomestic
+                            ?
                             ListView.builder(
                               itemCount: _fareID1.length,
                               itemBuilder: (context, index) {
 
-                                final flight = _fareData1[index].itinerary==1 ? _flight1[index] : _flight3[index];
+                                final flight = _flight1[index];
                                 final fareData= _fareData1[index];
                                 
-                                final segment0 = _fareData0[index].itinerary==1? _segment1[index] : _segment3[index];
-
-                                final startPointCity = getCityNameFromCode(segment0.startPoint);
-                                final endPointCity = getCityNameFromCode(segment0.endPoint);
-                                final deptTime = DateFormat.Hm().format(DateTime.parse(segment0.startTime));
-                                final deptDate = DateFormat.yMd().format(DateTime.parse(segment0.startTime));
-                                final arrvDate = DateFormat.yMd().format(DateTime.parse(segment0.endTime));
-                                final arrvTime = DateFormat.Hm().format(DateTime.parse(segment0.endTime));
+                                // final segment0 = _fareData0[index].itinerary==1 ? _segment1[index] : _segment3[index];
+                                
+                                final startPointCity = getCityNameFromCode(flight.startPoint);
+                                final endPointCity = getCityNameFromCode(flight.endPoint);
+                                final deptTime = DateFormat.Hm().format(DateTime.parse(flight.startDate));
+                                final deptDate = DateFormat.yMd().format(DateTime.parse(flight.startDate));
+                                final arrvDate = DateFormat.yMd().format(DateTime.parse(flight.endDate));
+                                final arrvTime = DateFormat.Hm().format(DateTime.parse(flight.endDate));
                                 String? airlineLogoPath = airlineLogos[flight.airline];
 
                                 final formattedPrice = NumberFormat('#,##0').format(fareData.totalPrice);
@@ -636,6 +687,12 @@ Widget build(BuildContext context) {
                                             ),
                                           ]
                                         ),
+
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [Text(flight.stopNum>0? 'Stop: ${flight.stopNum}':'Nonstop'),]
+                                        ),
+
                                         const SizedBox(height: 16),
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.end,
@@ -654,6 +711,7 @@ Widget build(BuildContext context) {
                                       onChanged: (int? value) {
                                         setState(() {
                                           _selectedFlightId = value;
+                                          _selectedRadio=value;
                                           _selectedFlightValue1=flight.flightValue;
 
                                         });
@@ -662,13 +720,270 @@ Widget build(BuildContext context) {
                                     onTap: () {
                                       setState(() {
                                         _selectedFlightId = fareData.fareDataId;
+                                        _selectedRadio=fareData.fareDataId;
                                         _selectedFlightValue1=flight.flightValue;
                                       });
                                     },
                                   )
                                 );
                               },
-                            ) : Text('Next form'),
+                            ) 
+                            :
+                            _flightType =='RT' && !(_isDomestic) && _itineraryNo==1 ?
+                            ListView.builder(
+                              itemCount: _fareID1.length,
+                              itemBuilder: (context, index) {
+
+                                final flight = _flight3[index];
+                                final fareData= _fareData1[index];
+                                
+                                // final segment0 = _fareData0[index].itinerary==1 ? _segment1[index] : _segment3[index];
+                                final stopSegment = _stopSegment20[index];
+                                final stopCityCode = stopSegment != null ? stopSegment.stopPoint : null;
+                                final stopCity = stopCityCode != null ? getCityNameFromCode(stopCityCode) : stopCityCode;
+
+                                final startPointCity = getCityNameFromCode(flight.startPoint);
+                                final endPointCity = getCityNameFromCode(flight.endPoint);
+                                final deptTime = DateFormat.Hm().format(DateTime.parse(flight.startDate));
+                                final deptDate = DateFormat.yMd().format(DateTime.parse(flight.startDate));
+                                final arrvDate = DateFormat.yMd().format(DateTime.parse(flight.endDate));
+                                final arrvTime = DateFormat.Hm().format(DateTime.parse(flight.endDate));
+                                String? airlineLogoPath = airlineLogos[flight.airline];
+
+                                final formattedPrice = NumberFormat('#,##0').format(fareData.totalPrice);
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white, // Background color
+                                    borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                                    boxShadow: [ // Optional: Add shadow for better visual appeal
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8.0,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ListTile(
+                                    title: airlineLogoPath != null
+                                        ? Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                airlineLogoPath,
+                                                width: 65,  // Adjust the width and height as needed
+                                                height: 65,
+                                                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                  // Fallback in case the image is not found
+                                                  return Text('Airline: ${flight.airline}');
+                                                },
+                                              ),
+                                              Text(flight.flightNumber),
+                                            ]
+                                          )
+                                        : Text('Airline: ${flight.airline}'),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Column(
+                                              children: [
+                                                Text(deptDate),
+                                                Text(
+                                                  deptTime,
+                                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                                ),
+                                                Text(startPointCity),
+                                              ]
+                                            ),
+                                            Image.asset(
+                                              'assets/segment_line.png',
+                                              width: 120,  // Adjust the width and height as needed
+                                              height: 50,
+                                            ),
+                                            Column(
+                                              children: [
+                                                Text(arrvDate),
+                                                Text(
+                                                  arrvTime,
+                                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                                ),
+                                                Text(endPointCity),
+                                              ]
+                                            ),
+                                          ]
+                                        ),
+
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [Text(flight.stopNum>0? 'Stop: ${flight.stopNum}- $stopCity':'Nonstop'),]
+                                        ),
+
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '$formattedPrice ${fareData.currency}',
+                                              style: TextStyle(color: themeColor, fontSize: 18, fontWeight: FontWeight.bold)
+                                            ),
+                                          ]
+                                        ),
+                                      ],
+                                    ),
+                                    leading: Radio<int>(
+                                      value: fareData.fareDataId,
+                                      groupValue: _selectedFlightId,
+                                      onChanged: (int? value) {
+                                        setState(() {
+                                          _selectedFlightId = value;
+                                          _selectedRadio=value;
+                                          _selectedFlightValue1=flight.flightValue;
+
+                                        });
+                                      },
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedFlightId = fareData.fareDataId;
+                                        _selectedRadio=fareData.fareDataId;
+                                        _selectedFlightValue1=flight.flightValue;
+                                      });
+                                    },
+                                  )
+                                );
+                              },
+                            ) : 
+                            ListView.builder(
+                              itemCount: _itineraryNo!-1,
+                              itemBuilder: (context, index) {
+
+                                final flight = _fareData1[_selectedFlightId!].itinerary==1 ? _flight1[_selectedFlightId!] : _flight3[_selectedFlightId!];
+                                final fareData= _fareData1[_selectedFlightId!];
+                                
+                                // final segment0 = _fareData0[_selectedFlightId!].itinerary==1? _segment1[_selectedFlightId!] : _segment3[_selectedFlightId!];
+
+                                final startPointCity = getCityNameFromCode(flight.startPoint);
+                                final endPointCity = getCityNameFromCode(flight.endPoint);
+                                final stopSegment = _stopSegment20[_selectedFlightId!];
+                                final stopCityCode = stopSegment != null ? stopSegment.stopPoint : null;
+                                final stopCity = stopCityCode != null ? getCityNameFromCode(stopCityCode) : stopCityCode;
+                                final deptTime = DateFormat.Hm().format(DateTime.parse(flight.startDate));
+                                final deptDate = DateFormat.yMd().format(DateTime.parse(flight.startDate));
+                                final arrvDate = DateFormat.yMd().format(DateTime.parse(flight.endDate));
+                                final arrvTime = DateFormat.Hm().format(DateTime.parse(flight.endDate));
+                                String? airlineLogoPath = airlineLogos[flight.airline];
+
+                                final formattedPrice = NumberFormat('#,##0').format(fareData.totalPrice);
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white, // Background color
+                                    borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                                    boxShadow: [ // Optional: Add shadow for better visual appeal
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 8.0,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ListTile(
+                                    title: airlineLogoPath != null
+                                        ? Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                airlineLogoPath,
+                                                width: 65,  // Adjust the width and height as needed
+                                                height: 65,
+                                                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                                  // Fallback in case the image is not found
+                                                  return Text('Airline: ${flight.airline}');
+                                                },
+                                              ),
+                                              Text(flight.flightNumber),
+                                            ]
+                                          )
+                                        : Text('Airline: ${flight.airline}'),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            Column(
+                                              children: [
+                                                Text(deptDate),
+                                                Text(
+                                                  deptTime,
+                                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                                ),
+                                                Text(startPointCity),
+                                              ]
+                                            ),
+                                            Image.asset(
+                                              'assets/segment_line.png',
+                                              width: 120,  // Adjust the width and height as needed
+                                              height: 50,
+                                            ),
+                                            Column(
+                                              children: [
+                                                Text(arrvDate),
+                                                Text(
+                                                  arrvTime,
+                                                  style: TextStyle(color: themeColor, fontSize: 20, fontWeight: FontWeight.bold),
+                                                ),
+                                                Text(endPointCity),
+                                              ]
+                                            ),
+                                          ]
+                                        ),
+                                        
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [Text(flight.stopNum>0? 'Stop: ${flight.stopNum} - $stopCity':'Nonstop'),]
+                                        ),
+
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '$formattedPrice ${fareData.currency}',
+                                              style: TextStyle(color: themeColor, fontSize: 18, fontWeight: FontWeight.bold)
+                                            ),
+                                          ]
+                                        ),
+                                      ],
+                                    ),
+                                    leading: Radio<int>(
+                                      value: _selectedFlightId!,
+                                      groupValue: _selectedFlightId,
+                                      onChanged: (int? value) {
+                                        setState(() {
+                                          
+                                          _selectedRadio=value;
+                                          _selectedFlightValue1=flight.flightValue;
+
+                                        });
+                                      },
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedFlightId = fareData.fareDataId;
+                                        _selectedRadio=fareData.fareDataId;
+                                        _selectedFlightValue1=flight.flightValue;
+                                      });
+                                    },
+                                  )
+                                );
+                              },
+                            )
+                            
+                            ,
                     if (_isLoading)
                       Positioned.fill(
                         child: Container(
@@ -684,12 +999,12 @@ Widget build(BuildContext context) {
               const SizedBox(height: 16),
               // Confirm Selection Button
               _flightType=='RT'? ElevatedButton(
-                onPressed: _selectedFlightId != null
+                onPressed: _selectedRadio != null
                     ? () {
                         // Handle flight selection
                         print('Selected Flight ID: $_selectedFlightId $_selectedFlightValue0 $_selectedFlightValue1');
                         setState(() {
-                          _selectedFlightId = null;
+                          _selectedRadio = null;
                           _showReturnFlight = true;
                         });
                       }
@@ -703,12 +1018,13 @@ Widget build(BuildContext context) {
                 child: !(_showReturnFlight)? Text('Next Selection', style: style2(context)):Text('Confirm', style: style2(context)),
               ) :
               ElevatedButton(
-                onPressed: _selectedFlightId != null
+                onPressed: _selectedRadio != null
                     ? () {
+                        widget.onConfirm();
                         // Handle flight selection
                         print('Selected Flight ID: $_selectedFlightId  $_selectedFlightValue0 $_selectedFlightValue1');
                         setState(() {
-                          _selectedFlightId = null;
+                          _selectedRadio = null;
                           _showReturnFlight = true;
                         });
                       }
