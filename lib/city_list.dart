@@ -23,6 +23,15 @@ const Map<String, Map<String, String>> cityCountryMap = {
   },
 };
 
+const Map<String, String> nationalityMap = {
+  'USA' : 'US',
+  'Vietnam' : 'VN',
+  'South Korea' : 'KR',
+
+};
+
+
+
 String getCityNameFromCode(String code) {
   for (var country in cityCountryMap.keys) {
     final cityMap = cityCountryMap[country]!;

@@ -7,9 +7,10 @@ import 'package:intl/intl.dart';
 import 'fare_data.dart';
 import 'dart:convert';
 import 'air_logo_map.dart';
+import 'passenger_page.dart';
 
 class HomePage extends StatefulWidget {
-  final VoidCallback onConfirm;
+  final void Function(int) onConfirm;
   const HomePage({super.key, required this.onConfirm});
 
 
@@ -20,9 +21,9 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   final TextEditingController _departureDateController = TextEditingController();
   final TextEditingController _returnDateController = TextEditingController();
-  int _adultNo = 1;
-  int _chdNo = 0;
-  int _infNo = 0;
+  int adultNo = 1;
+  int chdNo = 0;
+  int infNo = 0;
   String _flightType = 'RT'; // default type
   String _fromLoc = ''; // State to store the selected departure location
   String _toLoc = ''; // State to store the selected arrival location
@@ -203,9 +204,9 @@ Future<void> _searchFlights() async {
       toLoc: _toLoc,
       departureDate: _departureDateController.text,
       arrivalDate: _flightType == 'RT' ? _returnDateController.text : null,
-      adultNo: _adultNo,
-      chdNo: _chdNo,
-      infNo: _infNo,
+      adultNo: adultNo,
+      chdNo: chdNo,
+      infNo: infNo,
     );
 
     //print('API Response: $response'); // Print the raw response
@@ -423,36 +424,36 @@ Widget build(BuildContext context) {
                   Text('Adults', style: style2(context)),
                   DropdownButton<int>(
                     style: style3(context),
-                    value: _adultNo,
+                    value: adultNo,
                     dropdownColor: themeColor.withAlpha(1),
                     items: _buildDropdownItems(1, 9),
                     onChanged: (newValue) {
                       setState(() {
-                        _adultNo = newValue!;
+                        adultNo = newValue!;
                       });
                     },
                   ),
                   Text('Children', style: style2(context)),
                   DropdownButton<int>(
                     style: style3(context),
-                    value: _chdNo,
+                    value: chdNo,
                     dropdownColor: themeColor.withAlpha(1),
                     items: _buildDropdownItems(0, 9),
                     onChanged: (newValue) {
                       setState(() {
-                        _chdNo = newValue!;
+                        chdNo = newValue!;
                       });
                     },
                   ),
                   Text('Infants', style: style2(context)),
                   DropdownButton<int>(
                     style: style3(context),
-                    value: _infNo,
+                    value: infNo,
                     dropdownColor: themeColor.withAlpha(1),
                     items: _buildDropdownItems(0, 9),
                     onChanged: (newValue) {
                       setState(() {
-                        _infNo = newValue!;
+                        infNo = newValue!;
                       });
                     },
                   ),
@@ -1006,6 +1007,8 @@ Widget build(BuildContext context) {
                         setState(() {
                           _selectedRadio = null;
                           _showReturnFlight = true;
+                          int totalPassengers = adultNo + chdNo + infNo;
+                          _selectedFlightValue0!=null && _selectedFlightValue1!=null ? widget.onConfirm(totalPassengers): null;
                         });
                       }
                     : null, // Disable the button when no flight is selected
@@ -1020,8 +1023,10 @@ Widget build(BuildContext context) {
               ElevatedButton(
                 onPressed: _selectedRadio != null
                     ? () {
-                        widget.onConfirm();
-                        // Handle flight selection
+                        
+                        int totalPassengers = adultNo + chdNo + infNo;
+                        widget.onConfirm(totalPassengers);
+                      
                         print('Selected Flight ID: $_selectedFlightId  $_selectedFlightValue0 $_selectedFlightValue1');
                         setState(() {
                           _selectedRadio = null;

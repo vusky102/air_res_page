@@ -38,21 +38,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   
   var selectedIndex=1;
-
+  int totalPassengers=0;
   @override
   Widget build(BuildContext context) {
     
     Widget page;
     switch (selectedIndex) {
       case 1:
-        page = HomePage(onConfirm: () {
+        page = HomePage(onConfirm: (int totalPassengersFromHomePage) {
           setState(() {
             selectedIndex = 2; // Update selectedIndex to 2 when confirmed
+            totalPassengers = totalPassengersFromHomePage;
           });
         });
         break;
       case 2:
-        page = const PassengerPage();
+        page = PassengerPage(numberOfPassengers: totalPassengers);
         break;
         
 
